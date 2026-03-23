@@ -37,7 +37,7 @@ Separate from Command Center (different lifecycle — MCP server is a background
 `MARKDOWN_DIRS` env var — a JSON map of named directories with an optional `writable` flag:
 ```json
 {
-  "projects": { "path": "/Users/rodmachen/Library/Mobile Documents/com~apple~CloudDocs/Projects" },
+  "projects": { "path": "/Users/rodmachen/Library/Mobile Documents/com~apple~CloudDocs/projects" },
   "markdown-notes": { "path": "/Users/rodmachen/Library/Mobile Documents/com~apple~CloudDocs/markdown-notes", "writable": true }
 }
 ```
