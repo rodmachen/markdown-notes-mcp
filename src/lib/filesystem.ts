@@ -114,20 +114,29 @@ async function walk(dir: string, results: string[]): Promise<void> {
 
 /**
  * Reads a file's contents, truncating at MAX_FILE_SIZE with a notice.
+ * Uses fs.stat to avoid loading oversized files entirely into memory —
+ * only reads up to MAX_FILE_SIZE bytes via a file handle when the file is large.
  */
 export async function readFileContents(
   filePath: string
 ): Promise<{ content: string; truncated: boolean }> {
-  const raw = await fs.readFile(filePath, 'utf-8')
+  const stat = await fs.stat(filePath)
 
-  if (raw.length > MAX_FILE_SIZE) {
-    const sliced = raw.slice(0, MAX_FILE_SIZE)
-    return {
-      content: sliced + '\n\n[truncated] File exceeds 50KB limit.',
-      truncated: true,
+  if (stat.size > MAX_FILE_SIZE) {
+    const fd = await fs.open(filePath, 'r')
+    try {
+      const buffer = Buffer.alloc(MAX_FILE_SIZE)
+      await fd.read(buffer, 0, MAX_FILE_SIZE, 0)
+      return {
+        content: buffer.toString('utf-8') + '\n\n[truncated] File exceeds 50KB limit.',
+        truncated: true,
+      }
+    } finally {
+      await fd.close()
     }
   }
 
+  const raw = await fs.readFile(filePath, 'utf-8')
   return { content: raw, truncated: false }
 }
 

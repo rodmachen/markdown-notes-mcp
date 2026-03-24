@@ -145,14 +145,13 @@ export function createServer(dirs: MarkdownDirs): Server {
         }
 
         case 'search_files': {
-          const { query, directory, max_results, max_matches_per_file, include_filenames } =
-            args as {
-              query: string
-              directory?: string
-              max_results?: number
-              max_matches_per_file?: number
-              include_filenames?: boolean
-            }
+          const rawArgs = args as Record<string, unknown>
+          const query = rawArgs.query as string
+          const directory = rawArgs.directory as string | undefined
+          // Coerce to correct types — LLMs may send numbers as strings or booleans as strings
+          const max_results = rawArgs.max_results !== undefined ? Number(rawArgs.max_results) : undefined
+          const max_matches_per_file = rawArgs.max_matches_per_file !== undefined ? Number(rawArgs.max_matches_per_file) : undefined
+          const include_filenames = rawArgs.include_filenames !== undefined ? Boolean(rawArgs.include_filenames) : undefined
           const results = await searchFiles(dirs, {
             query,
             directory,

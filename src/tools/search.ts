@@ -22,8 +22,11 @@ export interface FileMatch {
   filenameMatch: boolean
 }
 
+const SEARCH_CONCURRENCY = 8
+
 /**
  * Full-text search across all .md files (content + filenames).
+ * Processes files concurrently in batches to reduce wall-clock time on large vaults.
  */
 export async function searchFiles(
   dirs: MarkdownDirs,
@@ -51,42 +54,51 @@ export async function searchFiles(
     searchDirs = Object.entries(dirs).map(([name, config]) => ({ name, path: config.path }))
   }
 
+  // Collect all candidate file paths (preserves discovery order for deterministic results)
+  const allFiles: Array<{ filePath: string; dirName: string; dirPath: string }> = []
+  for (const dir of searchDirs) {
+    const files = await listFilesInDir(dir.path)
+    for (const filePath of files) {
+      allFiles.push({ filePath, dirName: dir.name, dirPath: dir.path })
+    }
+  }
+
+  // Process in concurrent batches; stop early once max_results is reached
   const results: FileMatch[] = []
 
-  for (const dir of searchDirs) {
-    if (results.length >= max_results) break
+  for (let i = 0; i < allFiles.length && results.length < max_results; i += SEARCH_CONCURRENCY) {
+    const batch = allFiles.slice(i, i + SEARCH_CONCURRENCY)
 
-    const files = await listFilesInDir(dir.path)
+    const batchMatches = await Promise.all(
+      batch.map(async ({ filePath, dirName, dirPath }): Promise<FileMatch | null> => {
+        const relativePath = path.relative(dirPath, filePath)
+        const filenameMatch =
+          include_filenames && relativePath.toLowerCase().includes(lowerQuery)
 
-    for (const filePath of files) {
-      if (results.length >= max_results) break
-
-      const relativePath = path.relative(dir.path, filePath)
-      const filenameMatch =
-        include_filenames && relativePath.toLowerCase().includes(lowerQuery)
-
-      // Search content
-      let contentMatches: LineMatch[] = []
-      try {
-        const { content } = await readFileContents(filePath)
-        const lines = content.split('\n')
-        for (let i = 0; i < lines.length; i++) {
-          if (contentMatches.length >= max_matches_per_file) break
-          if (lines[i].toLowerCase().includes(lowerQuery)) {
-            contentMatches.push({ lineNumber: i + 1, line: lines[i] })
+        let contentMatches: LineMatch[] = []
+        try {
+          const { content } = await readFileContents(filePath)
+          const lines = content.split('\n')
+          for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+            if (contentMatches.length >= max_matches_per_file) break
+            if (lines[lineIdx].toLowerCase().includes(lowerQuery)) {
+              contentMatches.push({ lineNumber: lineIdx + 1, line: lines[lineIdx] })
+            }
           }
+        } catch {
+          return null
         }
-      } catch {
-        continue
-      }
 
-      if (filenameMatch || contentMatches.length > 0) {
-        results.push({
-          file: relativePath,
-          directoryName: dir.name,
-          matches: contentMatches,
-          filenameMatch,
-        })
+        if (filenameMatch || contentMatches.length > 0) {
+          return { file: relativePath, directoryName: dirName, matches: contentMatches, filenameMatch }
+        }
+        return null
+      })
+    )
+
+    for (const match of batchMatches) {
+      if (match && results.length < max_results) {
+        results.push(match)
       }
     }
   }

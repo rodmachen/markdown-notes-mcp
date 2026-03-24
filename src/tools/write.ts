@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import type { MarkdownDirs } from '../lib/config.js'
-import { validatePathWithin, validateNewFilePath } from '../lib/filesystem.js'
+import { validatePathWithin, validateNewFilePath, MAX_FILE_SIZE } from '../lib/filesystem.js'
 
 export type WriteMode = 'create' | 'append' | 'overwrite'
 
@@ -54,6 +54,12 @@ export async function saveFile(
 
   validateWriteExtension(filename)
 
+  if (content.length > MAX_FILE_SIZE) {
+    throw new Error(
+      `Content exceeds the 50KB size limit (${content.length} bytes). Split it into smaller files.`
+    )
+  }
+
   const filePath = path.join(config.path, filename)
   await validateNewFilePath(filePath, config.path)
 
@@ -89,6 +95,21 @@ export async function saveFile(
       await atomicWrite(filePath, appended)
     }
   })
+}
+
+/**
+ * Copies a file atomically: copies to a .tmp file then renames.
+ * Works across filesystems (unlike fs.rename alone).
+ */
+async function atomicCopy(srcPath: string, dstPath: string): Promise<void> {
+  const tmpPath = dstPath + '.tmp'
+  try {
+    await fs.copyFile(srcPath, tmpPath)
+    await fs.rename(tmpPath, dstPath)
+  } catch (err) {
+    try { await fs.unlink(tmpPath) } catch { /* ignore */ }
+    throw err
+  }
 }
 
 async function atomicWrite(filePath: string, content: string): Promise<void> {
@@ -155,9 +176,8 @@ export async function moveFile(
   // Auto-create destination parent directories
   await fs.mkdir(path.dirname(dstPath), { recursive: true })
 
-  // Copy then delete (works across different filesystems/iCloud dirs)
-  const content = await fs.readFile(srcPath)
-  await atomicWrite(dstPath, content.toString('utf-8'))
+  // Atomic copy then delete (works across different filesystems/iCloud dirs)
+  await atomicCopy(srcPath, dstPath)
   try {
     await fs.unlink(srcPath)
   } catch (err: unknown) {

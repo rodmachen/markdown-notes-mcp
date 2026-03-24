@@ -75,6 +75,13 @@ describe('saveFile — create', () => {
       /\.md|\.txt/
     )
   })
+
+  it('rejects content exceeding MAX_FILE_SIZE', async () => {
+    const bigContent = 'x'.repeat(50 * 1024 + 1)
+    await expect(saveFile(dirs, 'notes', 'big.md', bigContent, 'create')).rejects.toThrow(
+      /50KB|size limit/i
+    )
+  })
 })
 
 // ---------------------------------------------------------------------------
