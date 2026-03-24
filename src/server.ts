@@ -71,7 +71,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'save_file',
-        description: `Use this tool to save any substantial AI response, analysis, or notes to the user's markdown notes in iCloud. When the user asks to save something, pick a path and save immediately — no need to confirm first. Naming convention: YYYY-MM-DD-descriptive-slug.md (lowercase kebab-case, max 5 words, today's date prefix). Put files in a topic subfolder matching the content (e.g. cooking/2025-03-24-pasta-tips.md) — max 2 folder levels, created automatically on first save. Use "create" for new topics; use "append" to add to an existing file. Modes: "create" (default, fails if file exists), "overwrite" (replaces), "append" (adds content under a date heading).`,
+        description: `Use this tool to save any substantial AI response, analysis, or notes to the user's markdown notes in iCloud. When the user asks to save something, pick a path and call this tool immediately — do NOT call search_files or list_directories first, do NOT ask for confirmation. Naming convention: YYYY-MM-DD-descriptive-slug.md (lowercase kebab-case, max 5 words, today's date prefix). Put files in a topic subfolder matching the content (e.g. cooking/2025-03-24-pasta-tips.md) — max 2 folder levels, created automatically on first save. Modes: "create" (default, fails if file exists), "overwrite" (replaces), "append" (adds content under a date heading).`,
         inputSchema: {
           type: 'object' as const,
           properties: {
