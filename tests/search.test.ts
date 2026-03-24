@@ -28,7 +28,7 @@ describe('searchFiles', () => {
     await fs.writeFile(path.join(tmpDir, 'notes', 'other.md'), 'nothing relevant here')
     const results = await searchFiles(dirs, { query: 'meeting' })
     expect(results.length).toBeGreaterThan(0)
-    expect(results[0].file).toContain('work.md')
+    expect(results[0].file).toBe('work.md')
   })
 
   it('is case-insensitive', async () => {
@@ -62,7 +62,7 @@ describe('searchFiles', () => {
     await fs.writeFile(path.join(tmpDir, 'notes', 'note.md'), 'target content')
     await fs.writeFile(path.join(tmpDir, 'projects', 'proj.md'), 'target content')
     const results = await searchFiles(dirs, { query: 'target', directory: 'notes' })
-    expect(results.every(r => r.file.includes(path.join(tmpDir, 'notes')))).toBe(true)
+    expect(results.every(r => r.directoryName === 'notes')).toBe(true)
   })
 
   it('throws for unknown directory when scoped', async () => {
@@ -96,8 +96,8 @@ describe('searchFiles', () => {
     await fs.writeFile(path.join(tmpDir, 'notes', 'note.md'), 'find me')
     await fs.writeFile(path.join(tmpDir, 'projects', 'proj.md'), 'find me too')
     const results = await searchFiles(dirs, { query: 'find me' })
-    const files = results.map(r => r.file)
-    expect(files.some(f => f.includes('notes'))).toBe(true)
-    expect(files.some(f => f.includes('projects'))).toBe(true)
+    const dirs2 = results.map(r => r.directoryName)
+    expect(dirs2.some(d => d === 'notes')).toBe(true)
+    expect(dirs2.some(d => d === 'projects')).toBe(true)
   })
 })

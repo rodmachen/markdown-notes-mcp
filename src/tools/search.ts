@@ -82,7 +82,7 @@ export async function searchFiles(
 
       if (filenameMatch || contentMatches.length > 0) {
         results.push({
-          file: filePath,
+          file: relativePath,
           directoryName: dir.name,
           matches: contentMatches,
           filenameMatch,

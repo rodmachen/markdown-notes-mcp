@@ -5,7 +5,6 @@ import { validatePathWithin, listFilesInDir } from '../lib/filesystem.js'
 
 export interface DirectoryInfo {
   name: string
-  path: string
   writable: boolean
   subdirs: string[]
 }
@@ -20,7 +19,6 @@ export async function listDirectories(dirs: MarkdownDirs): Promise<DirectoryInfo
     const subdirs = await getSubdirs(config.path)
     results.push({
       name,
-      path: config.path,
       writable: config.writable,
       subdirs,
     })
@@ -60,5 +58,6 @@ export async function listFiles(
 
   await validatePathWithin(targetPath, config.path)
 
-  return listFilesInDir(targetPath)
+  const absolute = await listFilesInDir(targetPath)
+  return absolute.map(f => path.relative(config.path, f))
 }

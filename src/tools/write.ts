@@ -5,6 +5,17 @@ import { validatePathWithin, validateNewFilePath } from '../lib/filesystem.js'
 
 export type WriteMode = 'create' | 'append' | 'overwrite'
 
+const ALLOWED_WRITE_EXTENSIONS = new Set(['.md', '.txt'])
+
+function validateWriteExtension(filename: string): void {
+  const ext = path.extname(filename).toLowerCase()
+  if (!ALLOWED_WRITE_EXTENSIONS.has(ext)) {
+    throw new Error(
+      `File must have a .md or .txt extension, got: "${filename}"`
+    )
+  }
+}
+
 // In-memory write lock: file path → serialized promise chain
 const writeLocks = new Map<string, Promise<void>>()
 
@@ -40,6 +51,8 @@ export async function saveFile(
   if (!config.writable) {
     throw new Error(`Directory "${directoryName}" is read-only. Only writable directories can be written to.`)
   }
+
+  validateWriteExtension(filename)
 
   const filePath = path.join(config.path, filename)
   await validateNewFilePath(filePath, config.path)
@@ -145,5 +158,15 @@ export async function moveFile(
   // Copy then delete (works across different filesystems/iCloud dirs)
   const content = await fs.readFile(srcPath)
   await atomicWrite(dstPath, content.toString('utf-8'))
-  await fs.unlink(srcPath)
+  try {
+    await fs.unlink(srcPath)
+  } catch (err: unknown) {
+    // Destination was written successfully but source deletion failed.
+    // Both copies now exist — report the issue rather than silently leaving a duplicate.
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `File copied to "${destFilename}" but source deletion failed: ${msg}. ` +
+      `Both copies exist — delete the source manually.`
+    )
+  }
 }

@@ -63,6 +63,18 @@ describe('saveFile — create', () => {
       /outside/
     )
   })
+
+  it('rejects filenames without allowed extension', async () => {
+    await expect(saveFile(dirs, 'notes', 'script.sh', 'content', 'create')).rejects.toThrow(
+      /\.md|\.txt/
+    )
+  })
+
+  it('rejects filenames with no extension', async () => {
+    await expect(saveFile(dirs, 'notes', 'Makefile', 'content', 'create')).rejects.toThrow(
+      /\.md|\.txt/
+    )
+  })
 })
 
 // ---------------------------------------------------------------------------

@@ -139,11 +139,8 @@ export function createServer(dirs: MarkdownDirs): Server {
         case 'read_file': {
           const { directory, filename } = args as { directory: string; filename: string }
           const result = await readFile(dirs, directory, filename)
-          const text = result.truncated
-            ? result.content
-            : result.content
           return {
-            content: [{ type: 'text' as const, text }],
+            content: [{ type: 'text' as const, text: result.content }],
           }
         }
 
