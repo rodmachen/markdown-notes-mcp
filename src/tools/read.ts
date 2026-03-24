@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import type { MarkdownDirs } from '../lib/config.js'
-import { validatePathWithin, readFileContents } from '../lib/filesystem.js'
+import { validatePathWithin, readFileContents, rethrowEperm } from '../lib/filesystem.js'
 
 export interface ReadResult {
   content: string
@@ -35,7 +35,8 @@ export async function readFile(
 
   try {
     await fs.access(filePath)
-  } catch {
+  } catch (fileErr: unknown) {
+    rethrowEperm(fileErr)
     // File doesn't exist — check for iCloud stub
     try {
       await fs.access(stubPath)
@@ -47,6 +48,8 @@ export async function readFile(
       if (stubErr instanceof Error && stubErr.message.includes('iCloud')) {
         throw stubErr
       }
+      // Re-throw permission errors rather than masking them as "file not found"
+      rethrowEperm(stubErr)
       throw new Error(`File not found: ${filename}`)
     }
   }

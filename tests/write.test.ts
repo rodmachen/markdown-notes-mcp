@@ -122,6 +122,16 @@ describe('saveFile — append', () => {
     const content = await fs.readFile(path.join(tmpDir, 'notes', 'new-log.md'), 'utf-8')
     expect(content).toContain('First entry')
   })
+
+  it('each same-day append adds its own date heading', async () => {
+    await saveFile(dirs, 'notes', 'daily.md', 'entry one', 'append')
+    await saveFile(dirs, 'notes', 'daily.md', 'entry two', 'append')
+    const content = await fs.readFile(path.join(tmpDir, 'notes', 'daily.md'), 'utf-8')
+    expect(content).toContain('entry one')
+    expect(content).toContain('entry two')
+    const dateHeadings = content.match(/## \d{4}-\d{2}-\d{2}/g) ?? []
+    expect(dateHeadings).toHaveLength(2)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -222,5 +232,32 @@ describe('moveFile', () => {
     await expect(moveFile(dirs, 'notes', 'file.md', 'notes', 'bad.sh')).rejects.toThrow(
       /\.md|\.txt/
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// withLock — concurrency
+// ---------------------------------------------------------------------------
+
+describe('saveFile — concurrency', () => {
+  it('serializes concurrent overwrites to the same file without corruption', async () => {
+    // Fire two concurrent overwrites; the lock ensures one completes fully before the other
+    await Promise.all([
+      saveFile(dirs, 'notes', 'concurrent.md', 'write-A', 'overwrite'),
+      saveFile(dirs, 'notes', 'concurrent.md', 'write-B', 'overwrite'),
+    ])
+    const content = await fs.readFile(path.join(tmpDir, 'notes', 'concurrent.md'), 'utf-8')
+    // Either write can win — what matters is content is not interleaved/corrupted
+    expect(['write-A', 'write-B']).toContain(content)
+  })
+
+  it('serializes concurrent appends preserving both entries', async () => {
+    await Promise.all([
+      saveFile(dirs, 'notes', 'log.md', 'entry-A', 'append'),
+      saveFile(dirs, 'notes', 'log.md', 'entry-B', 'append'),
+    ])
+    const content = await fs.readFile(path.join(tmpDir, 'notes', 'log.md'), 'utf-8')
+    expect(content).toContain('entry-A')
+    expect(content).toContain('entry-B')
   })
 })

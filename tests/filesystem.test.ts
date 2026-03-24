@@ -192,6 +192,15 @@ describe('readFileContents', () => {
     expect(content).toContain('[truncated]')
   })
 
+  it('does not truncate files at exactly MAX_FILE_SIZE bytes', async () => {
+    const file = path.join(tmpDir, 'exact.md')
+    const exactContent = 'x'.repeat(MAX_FILE_SIZE)
+    await fs.writeFile(file, exactContent)
+    const { content, truncated } = await readFileContents(file)
+    expect(truncated).toBe(false)
+    expect(content).toBe(exactContent)
+  })
+
   it('throws ENOENT for missing files', async () => {
     const file = path.join(tmpDir, 'missing.md')
     await expect(readFileContents(file)).rejects.toThrow()

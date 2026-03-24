@@ -92,6 +92,13 @@ describe('searchFiles', () => {
     expect(results).toEqual([])
   })
 
+  it('empty query matches all files (every line contains the empty string)', async () => {
+    await fs.writeFile(path.join(tmpDir, 'notes', 'a.md'), 'anything')
+    await fs.writeFile(path.join(tmpDir, 'notes', 'b.md'), 'something')
+    const results = await searchFiles(dirs, { query: '' })
+    expect(results.length).toBe(2)
+  })
+
   it('searches across multiple directories', async () => {
     await fs.writeFile(path.join(tmpDir, 'notes', 'note.md'), 'find me')
     await fs.writeFile(path.join(tmpDir, 'projects', 'proj.md'), 'find me too')

@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import type { MarkdownDirs } from '../lib/config.js'
-import { validatePathWithin, listFilesInDir } from '../lib/filesystem.js'
+import { validatePathWithin, listFilesInDir, rethrowEperm } from '../lib/filesystem.js'
 
 export interface DirectoryInfo {
   name: string
@@ -34,7 +34,8 @@ async function getSubdirs(dirPath: string): Promise<string[]> {
       .filter(e => e.isDirectory() && e.name !== '_archive')
       .map(e => e.name)
       .sort()
-  } catch {
+  } catch (err: unknown) {
+    rethrowEperm(err)
     return []
   }
 }
