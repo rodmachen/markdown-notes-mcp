@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises'
 import type { Dirent } from 'node:fs'
 import * as path from 'node:path'
+import { StringDecoder } from 'node:string_decoder'
 
 export const MAX_FILE_SIZE = 50 * 1024 // 50KB
 
@@ -98,18 +99,18 @@ async function walk(dir: string, results: string[]): Promise<void> {
     return
   }
 
-  for (const entry of entries) {
+  await Promise.all(entries.map(async (entry) => {
     const fullPath = path.join(dir, entry.name)
 
     if (entry.isDirectory()) {
-      if (entry.name === '_archive') continue
+      if (entry.name === '_archive') return
       await walk(fullPath, results)
     } else if (entry.isFile()) {
       if (isAllowedFile(entry.name)) {
         results.push(fullPath)
       }
     }
-  }
+  }))
 }
 
 /**
@@ -127,8 +128,11 @@ export async function readFileContents(
     try {
       const buffer = Buffer.alloc(MAX_FILE_SIZE)
       await fd.read(buffer, 0, MAX_FILE_SIZE, 0)
+      // Use StringDecoder to avoid splitting a multi-byte UTF-8 character at the boundary
+      const decoder = new StringDecoder('utf-8')
+      const safeContent = decoder.write(buffer) + decoder.end()
       return {
-        content: buffer.toString('utf-8') + '\n\n[truncated] File exceeds 50KB limit.',
+        content: safeContent + '\n\n[truncated] File exceeds 50KB limit.',
         truncated: true,
       }
     } finally {

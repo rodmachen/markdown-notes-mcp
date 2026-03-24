@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import { randomBytes } from 'node:crypto'
 import type { MarkdownDirs } from '../lib/config.js'
 import { validatePathWithin, validateNewFilePath, MAX_FILE_SIZE } from '../lib/filesystem.js'
 
@@ -101,25 +102,29 @@ export async function saveFile(
  * Copies a file atomically: copies to a .tmp file then renames.
  * Works across filesystems (unlike fs.rename alone).
  */
+function tmpPath(filePath: string): string {
+  return `${filePath}.${randomBytes(4).toString('hex')}.tmp`
+}
+
 async function atomicCopy(srcPath: string, dstPath: string): Promise<void> {
-  const tmpPath = dstPath + '.tmp'
+  const tmpPath_ = tmpPath(dstPath)
   try {
-    await fs.copyFile(srcPath, tmpPath)
-    await fs.rename(tmpPath, dstPath)
+    await fs.copyFile(srcPath, tmpPath_)
+    await fs.rename(tmpPath_, dstPath)
   } catch (err) {
-    try { await fs.unlink(tmpPath) } catch { /* ignore */ }
+    try { await fs.unlink(tmpPath_) } catch { /* ignore */ }
     throw err
   }
 }
 
 async function atomicWrite(filePath: string, content: string): Promise<void> {
-  const tmpPath = filePath + '.tmp'
+  const tmpPath_ = tmpPath(filePath)
   try {
-    await fs.writeFile(tmpPath, content, 'utf-8')
-    await fs.rename(tmpPath, filePath)
+    await fs.writeFile(tmpPath_, content, 'utf-8')
+    await fs.rename(tmpPath_, filePath)
   } catch (err) {
     // Clean up temp file on failure
-    try { await fs.unlink(tmpPath) } catch { /* ignore */ }
+    try { await fs.unlink(tmpPath_) } catch { /* ignore */ }
     throw err
   }
 }

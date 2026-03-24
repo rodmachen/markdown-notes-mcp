@@ -27,10 +27,11 @@ export async function readFile(
   await validatePathWithin(filePath, config.path)
 
   // Check for iCloud eviction stub (.filename.icloud)
-  const basename = path.basename(filename)
-  const dirname = path.dirname(filename)
-  const stubName = '.' + basename + '.icloud'
-  const stubPath = path.join(config.path, dirname === '.' ? '' : dirname, stubName)
+  const stubPath = path.join(
+    config.path,
+    path.dirname(filename),
+    `.${path.basename(filename)}.icloud`
+  )
 
   try {
     await fs.access(filePath)
