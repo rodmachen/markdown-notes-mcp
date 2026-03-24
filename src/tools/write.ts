@@ -140,6 +140,8 @@ export async function deleteFile(
     throw new Error(`Directory "${directoryName}" is read-only. Only writable directories can be modified.`)
   }
 
+  validateWriteExtension(filename)
+
   const filePath = path.join(config.path, filename)
   await validatePathWithin(filePath, config.path)
   await fs.unlink(filePath)
@@ -169,6 +171,8 @@ export async function moveFile(
 
   const srcPath = path.join(srcConfig.path, sourceFilename)
   const dstPath = path.join(dstConfig.path, destFilename)
+
+  validateWriteExtension(destFilename)
 
   await validatePathWithin(srcPath, srcConfig.path)
   await validateNewFilePath(dstPath, dstConfig.path)

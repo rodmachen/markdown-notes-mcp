@@ -57,6 +57,15 @@ describe('listDirectories', () => {
     const notes = result.find(d => d.name === 'notes')!
     expect(notes.subdirs).toEqual([])
   })
+
+  it('excludes _archive directory but not similarly named dirs', async () => {
+    await fs.mkdir(path.join(tmpDir, 'projects', '_archive'))
+    await fs.mkdir(path.join(tmpDir, 'projects', '_archive_2024'))
+    const result = await listDirectories(dirs)
+    const projects = result.find(d => d.name === 'projects')!
+    expect(projects.subdirs).not.toContain('_archive')
+    expect(projects.subdirs).toContain('_archive_2024')
+  })
 })
 
 // ---------------------------------------------------------------------------

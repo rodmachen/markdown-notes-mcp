@@ -151,6 +151,10 @@ describe('deleteFile', () => {
   it('throws if file does not exist', async () => {
     await expect(deleteFile(dirs, 'notes', 'missing.md')).rejects.toThrow()
   })
+
+  it('rejects filenames without allowed extension', async () => {
+    await expect(deleteFile(dirs, 'notes', 'script.sh')).rejects.toThrow(/\.md|\.txt/)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -210,6 +214,13 @@ describe('moveFile', () => {
     await fs.writeFile(path.join(tmpDir, 'notes', 'file.md'), 'content')
     await expect(moveFile(dirs, 'notes', 'file.md', 'notes', '../escape.md')).rejects.toThrow(
       /outside/
+    )
+  })
+
+  it('rejects destination filename without allowed extension', async () => {
+    await fs.writeFile(path.join(tmpDir, 'notes', 'file.md'), 'content')
+    await expect(moveFile(dirs, 'notes', 'file.md', 'notes', 'bad.sh')).rejects.toThrow(
+      /\.md|\.txt/
     )
   })
 })

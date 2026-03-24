@@ -151,7 +151,10 @@ export function createServer(dirs: MarkdownDirs): Server {
           // Coerce to correct types — LLMs may send numbers as strings or booleans as strings
           const max_results = rawArgs.max_results !== undefined ? Number(rawArgs.max_results) : undefined
           const max_matches_per_file = rawArgs.max_matches_per_file !== undefined ? Number(rawArgs.max_matches_per_file) : undefined
-          const include_filenames = rawArgs.include_filenames !== undefined ? Boolean(rawArgs.include_filenames) : undefined
+          // Boolean("false") === true, so we must check the string value explicitly
+          const include_filenames = rawArgs.include_filenames !== undefined
+            ? String(rawArgs.include_filenames).toLowerCase() !== 'false'
+            : undefined
           const results = await searchFiles(dirs, {
             query,
             directory,

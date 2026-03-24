@@ -31,7 +31,7 @@ async function getSubdirs(dirPath: string): Promise<string[]> {
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true })
     return entries
-      .filter(e => e.isDirectory() && !e.name.startsWith('_archive'))
+      .filter(e => e.isDirectory() && e.name !== '_archive')
       .map(e => e.name)
       .sort()
   } catch {
