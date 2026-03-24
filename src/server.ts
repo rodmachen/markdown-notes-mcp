@@ -148,9 +148,15 @@ export function createServer(dirs: MarkdownDirs): Server {
           const rawArgs = args as Record<string, unknown>
           const query = rawArgs.query as string
           const directory = rawArgs.directory as string | undefined
-          // Coerce to correct types — LLMs may send numbers as strings or booleans as strings
-          const max_results = rawArgs.max_results !== undefined ? Number(rawArgs.max_results) : undefined
-          const max_matches_per_file = rawArgs.max_matches_per_file !== undefined ? Number(rawArgs.max_matches_per_file) : undefined
+          // Coerce to correct types — LLMs may send numbers as strings or booleans as strings.
+          // Fall back to undefined (which uses the default) if the value is NaN (e.g. "all").
+          const coerceNumber = (val: unknown): number | undefined => {
+            if (val === undefined) return undefined
+            const n = Number(val)
+            return Number.isNaN(n) ? undefined : n
+          }
+          const max_results = coerceNumber(rawArgs.max_results)
+          const max_matches_per_file = coerceNumber(rawArgs.max_matches_per_file)
           // Boolean("false") === true, so we must check the string value explicitly
           const include_filenames = rawArgs.include_filenames !== undefined
             ? String(rawArgs.include_filenames).toLowerCase() !== 'false'

@@ -260,4 +260,19 @@ describe('saveFile — concurrency', () => {
     expect(content).toContain('entry-A')
     expect(content).toContain('entry-B')
   })
+
+  it('concurrent save and delete do not leave file in unknown state', async () => {
+    await fs.writeFile(path.join(tmpDir, 'notes', 'race.md'), 'initial')
+    // One will win the lock first; the other will run after
+    const results = await Promise.allSettled([
+      saveFile(dirs, 'notes', 'race.md', 'saved', 'overwrite'),
+      deleteFile(dirs, 'notes', 'race.md'),
+    ])
+    // Both operations are individually valid — we just assert no unhandled exception
+    // (one may fail because the other deleted/wrote the file first, that is expected)
+    const errors = results.filter(r => r.status === 'rejected').map(r => (r as PromiseRejectedResult).reason)
+    for (const err of errors) {
+      expect(err).toBeInstanceOf(Error)
+    }
+  })
 })

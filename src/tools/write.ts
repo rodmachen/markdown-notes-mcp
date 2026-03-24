@@ -149,7 +149,9 @@ export async function deleteFile(
 
   const filePath = path.join(config.path, filename)
   await validatePathWithin(filePath, config.path)
-  await fs.unlink(filePath)
+  return withLock(filePath, async () => {
+    await fs.unlink(filePath)
+  })
 }
 
 /**
@@ -177,25 +179,37 @@ export async function moveFile(
   const srcPath = path.join(srcConfig.path, sourceFilename)
   const dstPath = path.join(dstConfig.path, destFilename)
 
-  validateWriteExtension(destFilename)
-
   await validatePathWithin(srcPath, srcConfig.path)
   await validateNewFilePath(dstPath, dstConfig.path)
 
-  // Auto-create destination parent directories
-  await fs.mkdir(path.dirname(dstPath), { recursive: true })
+  validateWriteExtension(destFilename)
 
-  // Atomic copy then delete (works across different filesystems/iCloud dirs)
-  await atomicCopy(srcPath, dstPath)
-  try {
-    await fs.unlink(srcPath)
-  } catch (err: unknown) {
-    // Destination was written successfully but source deletion failed.
-    // Both copies now exist — report the issue rather than silently leaving a duplicate.
-    const msg = err instanceof Error ? err.message : String(err)
-    throw new Error(
-      `File copied to "${destFilename}" but source deletion failed: ${msg}. ` +
-      `Both copies exist — delete the source manually.`
-    )
-  }
+  const resolvedSrc = path.resolve(srcPath)
+  const resolvedDst = path.resolve(dstPath)
+  if (resolvedSrc === resolvedDst) return // moving a file to itself is a no-op
+
+  // Acquire locks in sorted order to prevent deadlock when two concurrent
+  // moves involve the same pair of paths in opposite directions
+  const [firstLock, secondLock] = resolvedSrc < resolvedDst
+    ? [srcPath, dstPath]
+    : [dstPath, srcPath]
+
+  return withLock(firstLock, () => withLock(secondLock, async () => {
+    // Auto-create destination parent directories
+    await fs.mkdir(path.dirname(dstPath), { recursive: true })
+
+    // Atomic copy then delete (works across different filesystems/iCloud dirs)
+    await atomicCopy(srcPath, dstPath)
+    try {
+      await fs.unlink(srcPath)
+    } catch (err: unknown) {
+      // Destination was written successfully but source deletion failed.
+      // Both copies now exist — report the issue rather than silently leaving a duplicate.
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(
+        `File copied to "${destFilename}" but source deletion failed: ${msg}. ` +
+        `Both copies exist — delete the source manually.`
+      )
+    }
+  }))
 }

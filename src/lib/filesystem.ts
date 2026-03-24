@@ -99,18 +99,20 @@ async function walk(dir: string, results: string[]): Promise<void> {
     return
   }
 
-  await Promise.all(entries.map(async (entry) => {
-    const fullPath = path.join(dir, entry.name)
-
-    if (entry.isDirectory()) {
-      if (entry.name === '_archive') return
-      await walk(fullPath, results)
-    } else if (entry.isFile()) {
-      if (isAllowedFile(entry.name)) {
-        results.push(fullPath)
-      }
+  // Collect files from this level synchronously (no fd needed after readdir)
+  for (const entry of entries) {
+    if (entry.isFile() && isAllowedFile(entry.name)) {
+      results.push(path.join(dir, entry.name))
     }
-  }))
+  }
+
+  // Traverse subdirectories sequentially to prevent EMFILE from unbounded
+  // recursive readdir concurrency on large vaults
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name !== '_archive') {
+      await walk(path.join(dir, entry.name), results)
+    }
+  }
 }
 
 /**

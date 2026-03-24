@@ -117,6 +117,18 @@ describe('search_files', () => {
     const data = JSON.parse((result.content as Array<{ text: string }>)[0].text)
     expect(data.length).toBeGreaterThan(0)
   })
+
+  it('treats invalid max_results (NaN) as default and returns results', async () => {
+    await fs.writeFile(path.join(tmpDir, 'notes', 'note.md'), 'nan test content')
+    const result = await client.callTool({
+      name: 'search_files',
+      // Simulate an LLM sending a non-numeric string for a number field
+      arguments: { query: 'nan test', max_results: 'all' as unknown as number },
+    })
+    expect(result.isError).toBeFalsy()
+    const data = JSON.parse((result.content as Array<{ text: string }>)[0].text)
+    expect(data.length).toBeGreaterThan(0)
+  })
 })
 
 // ---------------------------------------------------------------------------
