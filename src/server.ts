@@ -23,7 +23,7 @@ export function createServer(dirs: MarkdownDirs): Server {
     tools: [
       {
         name: 'list_directories',
-        description: 'Returns the top-level structure of all configured markdown directories, including which are writable.',
+        description: 'Returns all configured markdown directories with their writable status and existing subfolders. Call this first before saving a file — it shows the current folder structure so you can pick or create the right subfolder for the content.',
         inputSchema: {
           type: 'object' as const,
           properties: {},
@@ -32,7 +32,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'list_files',
-        description: 'Lists markdown files in a specific path within a configured directory.',
+        description: 'Lists markdown files in a specific path within a configured directory. Use this to audit what files exist in a folder before reorganizing or to check for duplicates.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -56,7 +56,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'search_files',
-        description: 'Full-text search across all markdown files (content and filenames). Returns matching lines with context.',
+        description: 'Full-text search across all markdown files (content and filenames). Use this before saving to check whether a file on this topic already exists — if so, append to it rather than creating a duplicate. Returns matching lines with context.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -71,12 +71,12 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'save_file',
-        description: 'Saves markdown content to a writable directory. Modes: "create" (default, fails if exists), "overwrite", "append" (adds content under a date heading).',
+        description: `Use this tool to save any substantial AI response, analysis, or notes to the user's markdown notes in iCloud. Workflow: (1) call list_directories to see existing subfolders, (2) call search_files to check if a file on this topic exists already, (3) propose a full path and wait for user confirmation, (4) save. Naming convention: YYYY-MM-DD-descriptive-slug.md (lowercase kebab-case, max 5 words, today's date prefix). Put files in a topic subfolder (e.g. cooking/2025-03-24-pasta-tips.md) — max 2 folder levels. Use mode "append" to add to an existing file on the same topic; use "create" for a new topic. Modes: "create" (default, fails if file exists), "overwrite" (replaces), "append" (adds content under a date heading).`,
         inputSchema: {
           type: 'object' as const,
           properties: {
-            directory: { type: 'string', description: 'Name of the writable directory' },
-            filename: { type: 'string', description: 'Relative path for the file (supports nested folders)' },
+            directory: { type: 'string', description: 'Name of the writable directory (use "markdown-notes" for saving AI responses)' },
+            filename: { type: 'string', description: 'Relative path for the file within the directory, including any subfolders (e.g. "cooking/2025-03-24-pasta-tips.md")' },
             content: { type: 'string', description: 'Markdown content to write' },
             mode: { type: 'string', enum: ['create', 'overwrite', 'append'], description: 'Write mode (default: "create")' },
           },
@@ -97,7 +97,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'move_file',
-        description: 'Moves or renames a file. Source can be any directory; destination must be writable.',
+        description: 'Moves or renames a file. Source can be any directory; destination must be writable. Use this during cleanup/reorganization — audit with list_files, propose changes to the user, confirm, then execute.',
         inputSchema: {
           type: 'object' as const,
           properties: {
