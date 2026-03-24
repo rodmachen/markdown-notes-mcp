@@ -23,7 +23,7 @@ export function createServer(dirs: MarkdownDirs): Server {
     tools: [
       {
         name: 'list_directories',
-        description: 'Returns all configured markdown directories with their writable status and existing subfolders. Call this first before saving a file — it shows the current folder structure so you can pick or create the right subfolder for the content.',
+        description: 'Returns all configured markdown directories with their writable status and existing subfolders. Use this when you need to inspect the current folder structure, such as during a cleanup or reorganization.',
         inputSchema: {
           type: 'object' as const,
           properties: {},
@@ -71,7 +71,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'save_file',
-        description: `Use this tool to save any substantial AI response, analysis, or notes to the user's markdown notes in iCloud. Workflow: (1) call list_directories to see existing subfolders, (2) call search_files to check if a file on this topic exists already, (3) propose a full path and wait for user confirmation, (4) save. Naming convention: YYYY-MM-DD-descriptive-slug.md (lowercase kebab-case, max 5 words, today's date prefix). Put files in a topic subfolder (e.g. cooking/2025-03-24-pasta-tips.md) — max 2 folder levels. Use mode "append" to add to an existing file on the same topic; use "create" for a new topic. Modes: "create" (default, fails if file exists), "overwrite" (replaces), "append" (adds content under a date heading).`,
+        description: `Use this tool to save any substantial AI response, analysis, or notes to the user's markdown notes in iCloud. When the user asks to save something, pick a path and save immediately — no need to confirm first. Naming convention: YYYY-MM-DD-descriptive-slug.md (lowercase kebab-case, max 5 words, today's date prefix). Put files in a topic subfolder matching the content (e.g. cooking/2025-03-24-pasta-tips.md) — max 2 folder levels, created automatically on first save. Use "create" for new topics; use "append" to add to an existing file. Modes: "create" (default, fails if file exists), "overwrite" (replaces), "append" (adds content under a date heading).`,
         inputSchema: {
           type: 'object' as const,
           properties: {
