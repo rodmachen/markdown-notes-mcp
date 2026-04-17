@@ -23,7 +23,7 @@ export function createServer(dirs: MarkdownDirs): Server {
     tools: [
       {
         name: 'list_directories',
-        description: 'Returns the top-level structure of all configured markdown directories, including which are writable.',
+        description: 'Returns all configured markdown directories with their writable status and existing subfolders. Use this when you need to inspect the current folder structure, such as during a cleanup or reorganization.',
         inputSchema: {
           type: 'object' as const,
           properties: {},
@@ -32,7 +32,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'list_files',
-        description: 'Lists markdown files in a specific path within a configured directory.',
+        description: 'Lists markdown files in a specific path within a configured directory. Use this to audit what files exist in a folder before reorganizing or to check for duplicates.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -56,7 +56,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'search_files',
-        description: 'Full-text search across all markdown files (content and filenames). Returns matching lines with context.',
+        description: 'Full-text search across all markdown files (content and filenames). Use this before saving to check whether a file on this topic already exists — if so, append to it rather than creating a duplicate. Returns matching lines with context.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -71,12 +71,12 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'save_file',
-        description: 'Saves markdown content to a writable directory. Modes: "create" (default, fails if exists), "overwrite", "append" (adds content under a date heading).',
+        description: `Use this tool to save any substantial AI response, analysis, or notes to the user's markdown notes in iCloud. When the user asks to save something: (1) call list_directories first to see the existing folder structure, then (2) pick a path that matches existing folders where possible, then (3) call this tool immediately — do NOT ask for confirmation. Save the FULL content of the response verbatim — do NOT summarize, condense, or edit. Include all explanatory text, examples, tables, and conversational context exactly as written. Folder structure: use 2–3 levels deep, never put files directly in a top-level folder. Use 3 levels when a topic has natural subcategories. Examples: coding/projects/command-center/briefing-issues.md, coding/llms/claude-code/tokens-primer.md, coding/react/learning/rampup-plan.md, job-search/udemy/seo-audit.md, hobbies/guitar/effects-tutorial.md, hobbies/gaming/civ-buying-guide.md, travel/northeast/baltimore/trip-reference.md. Naming: descriptive-slug.md (lowercase kebab-case, max 5 words — describe the topic, never use generic words like "chat", "response", "notes", or "summary" in the slug unless explicitly requested). Date metadata goes at the TOP of the file content, not in the filename. Always prepend two lines before any other content: "Generated: {Month DD, YYYY — date the response was generated}" and "Saved: {Month DD, YYYY — today's date}". Example: "Generated: March 24, 2026\nSaved: March 25, 2026". Folders are created automatically. Modes: "create" (default, fails if file exists), "overwrite" (replaces), "append" (adds content under a date heading).`,
         inputSchema: {
           type: 'object' as const,
           properties: {
-            directory: { type: 'string', description: 'Name of the writable directory' },
-            filename: { type: 'string', description: 'Relative path for the file (supports nested folders)' },
+            directory: { type: 'string', description: 'Name of the writable directory (use "markdown-notes" for saving AI responses)' },
+            filename: { type: 'string', description: 'Relative path for the file within the directory, including any subfolders (e.g. "cooking/pasta-tips.md")' },
             content: { type: 'string', description: 'Markdown content to write' },
             mode: { type: 'string', enum: ['create', 'overwrite', 'append'], description: 'Write mode (default: "create")' },
           },
@@ -97,7 +97,7 @@ export function createServer(dirs: MarkdownDirs): Server {
       },
       {
         name: 'move_file',
-        description: 'Moves or renames a file. Source can be any directory; destination must be writable.',
+        description: 'Moves or renames a file. Source can be any directory; destination must be writable. Use this during cleanup/reorganization — audit with list_files, propose changes to the user, confirm, then execute.',
         inputSchema: {
           type: 'object' as const,
           properties: {
@@ -180,9 +180,12 @@ export function createServer(dirs: MarkdownDirs): Server {
             content: string
             mode?: WriteMode
           }
-          await saveFile(dirs, directory, filename, content, mode)
+          const savedFilename = await saveFile(dirs, directory, filename, content, mode)
+          const note = savedFilename !== filename
+            ? ` (original "${filename}" already existed — saved as new file instead)`
+            : ''
           return {
-            content: [{ type: 'text' as const, text: `Saved: ${filename}` }],
+            content: [{ type: 'text' as const, text: `Saved: ${savedFilename}${note}` }],
           }
         }
 
