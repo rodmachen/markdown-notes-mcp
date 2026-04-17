@@ -180,9 +180,12 @@ export function createServer(dirs: MarkdownDirs): Server {
             content: string
             mode?: WriteMode
           }
-          await saveFile(dirs, directory, filename, content, mode)
+          const savedFilename = await saveFile(dirs, directory, filename, content, mode)
+          const note = savedFilename !== filename
+            ? ` (original "${filename}" already existed — saved as new file instead)`
+            : ''
           return {
-            content: [{ type: 'text' as const, text: `Saved: ${filename}` }],
+            content: [{ type: 'text' as const, text: `Saved: ${savedFilename}${note}` }],
           }
         }
 

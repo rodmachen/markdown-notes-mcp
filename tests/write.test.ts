@@ -89,15 +89,30 @@ describe('saveFile — create', () => {
 // ---------------------------------------------------------------------------
 
 describe('saveFile — overwrite', () => {
-  it('overwrites an existing file', async () => {
+  it('preserves existing file and creates a new suffixed file instead of overwriting', async () => {
     await fs.writeFile(path.join(tmpDir, 'notes', 'file.md'), 'original')
-    await saveFile(dirs, 'notes', 'file.md', 'updated', 'overwrite')
-    const content = await fs.readFile(path.join(tmpDir, 'notes', 'file.md'), 'utf-8')
-    expect(content).toBe('updated')
+    const result = await saveFile(dirs, 'notes', 'file.md', 'updated', 'overwrite')
+    // Original file must be untouched
+    const original = await fs.readFile(path.join(tmpDir, 'notes', 'file.md'), 'utf-8')
+    expect(original).toBe('original')
+    // New file must have the updated content and a suffixed name
+    expect(result).toBe('file-2.md')
+    const newContent = await fs.readFile(path.join(tmpDir, 'notes', 'file-2.md'), 'utf-8')
+    expect(newContent).toBe('updated')
+  })
+
+  it('increments suffix when multiple files already exist', async () => {
+    await fs.writeFile(path.join(tmpDir, 'notes', 'dup.md'), 'v1')
+    await fs.writeFile(path.join(tmpDir, 'notes', 'dup-2.md'), 'v2')
+    const result = await saveFile(dirs, 'notes', 'dup.md', 'v3', 'overwrite')
+    expect(result).toBe('dup-3.md')
+    const newContent = await fs.readFile(path.join(tmpDir, 'notes', 'dup-3.md'), 'utf-8')
+    expect(newContent).toBe('v3')
   })
 
   it('creates file if it does not exist in overwrite mode', async () => {
-    await saveFile(dirs, 'notes', 'new.md', 'new content', 'overwrite')
+    const result = await saveFile(dirs, 'notes', 'new.md', 'new content', 'overwrite')
+    expect(result).toBe('new.md')
     const content = await fs.readFile(path.join(tmpDir, 'notes', 'new.md'), 'utf-8')
     expect(content).toBe('new content')
   })
