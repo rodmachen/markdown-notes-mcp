@@ -15,7 +15,7 @@ Intended outcome: `mode: "overwrite"` replaces the existing file atomically. The
 
 ## Changes
 
-### 1. Make `overwrite` actually overwrite — `src/tools/write.ts`
+### 1. Make `overwrite` actually overwrite — `src/tools/write.ts` ✅
 
 Replace the `else if (mode === 'overwrite')` block (lines 85-112) with a straight atomic write. The existing `atomicWrite` helper (temp file + rename, lines 151-161) already provides crash safety; no suffix probing needed.
 
@@ -30,7 +30,7 @@ New body:
 
 Also update the JSDoc on lines 35-40: drop the "creates new file with suffix if exists" description and the "may differ from requested filename" note. The function still returns `string` (the filename written) — no signature change — but it will always equal the input `filename`.
 
-### 2. Rewrite the overwrite tests — `tests/write.test.ts`
+### 2. Rewrite the overwrite tests — `tests/write.test.ts` ✅
 
 The current `saveFile — overwrite` suite (lines 91-119) asserts the buggy behavior: it explicitly expects the original file to be preserved and a `-2.md` sibling to be created. Rewrite as:
 
