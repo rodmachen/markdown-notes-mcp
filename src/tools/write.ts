@@ -34,10 +34,10 @@ function withLock<T>(filePath: string, fn: () => Promise<T>): Promise<T> {
 
 /**
  * Writes markdown content to a writable directory.
- * Modes: "create" (default, fails if exists), "overwrite" (creates new file with suffix if exists), "append" (with date heading).
+ * Modes: "create" (default, fails if exists), "overwrite" (replaces existing file), "append" (with date heading).
  * Uses atomic write (temp file + rename) to prevent corruption.
  * Serializes concurrent writes to the same file.
- * Returns the actual filename written (may differ from requested filename in overwrite mode).
+ * Returns the filename written.
  */
 export async function saveFile(
   dirs: MarkdownDirs,
@@ -83,33 +83,8 @@ export async function saveFile(
       await atomicWrite(filePath, content)
       return filename
     } else if (mode === 'overwrite') {
-      // Never overwrite an existing file — find a free name with a numeric suffix instead.
-      let targetFilename = filename
-      let targetPath = filePath
-      try {
-        await fs.access(filePath)
-        // File exists — find the next available suffixed name (e.g. foo-2.md, foo-3.md …)
-        const ext = path.extname(filename)
-        const base = filename.slice(0, filename.length - ext.length)
-        const dir = path.dirname(filePath)
-        let counter = 2
-        while (true) {
-          const candidate = `${base}-${counter}${ext}`
-          const candidatePath = path.join(dir, path.basename(candidate))
-          try {
-            await fs.access(candidatePath)
-            counter++
-          } catch {
-            targetFilename = path.join(path.dirname(filename), path.basename(candidate))
-            targetPath = candidatePath
-            break
-          }
-        }
-      } catch {
-        // File doesn't exist — write to the original path
-      }
-      await atomicWrite(targetPath, content)
-      return targetFilename
+      await atomicWrite(filePath, content)
+      return filename
     } else if (mode === 'append') {
       let existing = ''
       try {
