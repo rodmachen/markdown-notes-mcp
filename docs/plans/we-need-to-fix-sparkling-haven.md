@@ -43,7 +43,7 @@ Drop the "increments suffix" test (lines 104-111) entirely — the behavior no l
 
 Current text already says `"overwrite" (replaces)`, which is now truthful. No change required unless we want to explicitly warn against using it on state files without care. Leaving as-is for now.
 
-### 4. Clean up existing `-N` duplicates in iCloud notes
+### 4. Clean up existing `-N` duplicates in iCloud notes ✅
 
 The duplicates mentioned (`work-log/_current-2.md`, `work-log/repos/comics-n-stuff-gql-2.md`) did not turn up in a scan of `~/Library/Mobile Documents/com~apple~CloudDocs/markdown-notes/` — likely already removed, or the work-log tree doesn't exist yet. Before implementation, run:
 
