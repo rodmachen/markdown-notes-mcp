@@ -75,7 +75,7 @@ Changes:
 - Run `npm run build` to confirm compilation
 - Review the full save_file tool description one more time
 
-### Step 6: Migrate existing files in markdown-notes
+### Step 6: Migrate existing files in markdown-notes — ✅
 **Model: Sonnet**
 
 Migrate 13 existing files (skip `daily-briefings/` and `CONVENTIONS.md`):
